@@ -1,23 +1,23 @@
-package com.springboot.webflux.app.models.document;
+package com.springboot.webflux.app.models.documents;
 
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
-@Document(collection = "categorias")
+@Document(collection="categorias") 
 public class Categoria {
+	
 	@Id
 	private String id;
 	private String nombre;
 	
 	public Categoria() {
-
 		
 	}
 	
-	public Categoria( String nombre) {
-
+	public Categoria(String nombre) {
 		this.nombre = nombre;
 	}
+	
 	public String getId() {
 		return id;
 	}
@@ -35,6 +35,7 @@ public class Categoria {
 	public String toString() {
 		return "Categoria [id=" + id + ", nombre=" + nombre + "]";
 	}
+	
+	
 
-		
 }

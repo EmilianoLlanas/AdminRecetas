@@ -1,4 +1,4 @@
-package com.springboot.webflux.app.controllers;
+package com.springboot.webflux.app.handlers;
 
 import java.net.URI;
 import java.util.Date;
@@ -15,87 +15,114 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Component;
+import org.springframework.validation.BeanPropertyBindingResult;
+import org.springframework.validation.Errors;
+import org.springframework.validation.FieldError;
+import org.springframework.validation.Validator;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.bind.support.WebExchangeBindException;
+import org.springframework.web.reactive.function.server.ServerRequest;
+import org.springframework.web.reactive.function.server.ServerResponse;
 
 import com.springboot.webflux.app.models.dao.ProductoDao;
 import com.springboot.webflux.app.models.documents.Producto;
+import com.springboot.webflux.app.models.documents.ValidationError;
 
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-@RestController
-@RequestMapping("/producto-controller-old/productos")
-public class ProductoController {
+import static org.springframework.web.reactive.function.BodyInserters.*;
+
+@Component
+public class ProductoHandler {
 	
-	Logger log = LoggerFactory.getLogger(ProductoController.class);
+	Logger log = LoggerFactory.getLogger(ProductoHandler.class);
 	
 	@Autowired
 	private ProductoDao productoDao;
+	
+	@Autowired
+	private Validator validator;
 
-	@GetMapping
-	public Flux<Producto> listar(@RequestParam(required=false) Map<String,String> qparams) {
-		qparams.forEach((a,b) -> {
-	        System.out.println(String.format("%s -> %s",a,b));
-	    });
+	
+	public Mono<ServerResponse> listar(ServerRequest request) {
 		
-		String nombre = qparams.get("nombre");
-		String precio = qparams.get("precio");
-		String categoria = qparams.get("categoria");
+		String nombre = request.queryParam("nombre").orElse(null);
+		String precio = request.queryParam("precio").orElse(null);
+		String categoria = request.queryParam("categoria").orElse(null);
 		
-		return productoDao.findAll()
-				          .filter(producto-> null!=nombre ? producto.getNombre().contains(nombre) : true)
-				          .filter(producto-> null!=precio ? producto.getPrecio()<=Double.parseDouble(precio) : true )
-				          .filter(producto-> null!=categoria ? producto.getCategoria().getNombre().equals(categoria) : true );
+		Flux<Producto> productos = 
+				productoDao.findAll()
+				           .filter(producto-> null!=nombre ? producto.getNombre().contains(nombre) : true)
+				           .filter(producto-> null!=precio ? producto.getPrecio()<=Double.parseDouble(precio) : true )
+				           .filter(producto-> null!=categoria ? producto.getCategoria().getNombre().equals(categoria) : true );	
+		
+		return ServerResponse
+				 .ok()
+				 .contentType(MediaType.APPLICATION_JSON)
+				 .body(productos, Producto.class);
 	}
 	
-	@GetMapping("/{id}")
-	public Mono<ResponseEntity<Producto>> consultar(@PathVariable String id) {
+
+	public Mono<ServerResponse> consultar(ServerRequest request) {
+		String id = request.pathVariable("id");
+
 		return productoDao
 				.findById(id)
-				.map(producto -> {
-					return ResponseEntity
+				.flatMap(producto -> {
+					return ServerResponse
 					  .ok()
 					  .contentType(MediaType.APPLICATION_JSON)
-					  .body(producto);
+					  .body(fromValue(producto));
 					
 				})
-				.defaultIfEmpty(
-						ResponseEntity.notFound().build()
+				.switchIfEmpty(
+						ServerResponse.notFound().build()
                 );
 	}
 	
-	@PostMapping
-	public Mono<ResponseEntity<Map<String,Object>>> crear(@Valid @RequestBody Mono<Producto> monoProducto) {
+	public Mono<ServerResponse> crear(ServerRequest request) {		
+		Mono<Producto> monoProducto = request.bodyToMono(Producto.class);
+		
 		Map<String, Object> respuesta = new HashMap<String, Object>();
+		
 		return monoProducto
 				.flatMap(producto -> {
 					log.info("producto:"+producto.toString());
 					return productoDao
 						.save(producto)
-						.map(prod ->{
+						.flatMap(prod ->{
+							
+							Errors errors = new BeanPropertyBindingResult(prod, Producto.class.getName());
+							validator.validate(prod, errors);
+							
+							if (errors.hasErrors()) {
+								return createErrors(errors.getFieldErrors());
+							}
 							
 							respuesta.put("producto", producto);
 							respuesta.put("message", "alta exitosa");
 							respuesta.put("timestamp", new Date());
 							
-							return ResponseEntity
+							return ServerResponse
 									 .created(URI.create("/producto-controller/productos/"+prod.getId()))
 									 .contentType(MediaType.APPLICATION_JSON)
-									 .body(respuesta);
+									 .body(fromValue(respuesta));
 						});
-	           }).onErrorResume(ex -> {
-	        	   return generarError(ex);
 	           });
 	}
 	
-	@PutMapping("/{id}")
-	public Mono<ResponseEntity<Map<String,Object>>> editar(@Valid @RequestBody Mono<Producto> monoProducto, @PathVariable String id) {
+	public Mono<ServerResponse> editar(ServerRequest request) {
+		String id = request.pathVariable("id");
+		Mono<Producto> monoProducto = request.bodyToMono(Producto.class);
+		
 		Map<String, Object> respuesta = new HashMap<String, Object>();
 		return monoProducto
 				.flatMap(producto -> {
 						return productoDao.findById(id)
 						           .flatMap(prod-> {
+										
 						        	   prod.setNombre(producto.getNombre());
 						        	   prod.setPrecio(producto.getPrecio());
 						        	   prod.setCategoria(producto.getCategoria());
@@ -103,56 +130,65 @@ public class ProductoController {
 						        	   return productoDao.save(prod);
 						           })
 						           .defaultIfEmpty(new Producto())
-						           .map(prod -> {
+						           .flatMap(prod -> {
+						        	   
+						        	   Errors errors = new BeanPropertyBindingResult(prod, Producto.class.getName());
+										validator.validate(prod, errors);
+										
+										if (errors.hasErrors()) {
+											return createErrors(errors.getFieldErrors());
+										}
 						        	   
 						        	   if (null == prod.getId()) {
 											respuesta.put("message", "no existe el producto con id:"+id);
 											respuesta.put("timestamp", new Date());
 											
-											return ResponseEntity.status(HttpStatus.NOT_FOUND)
+											return ServerResponse.status(HttpStatus.NOT_FOUND)
 													             .contentType(MediaType.APPLICATION_JSON)
-													             .body(respuesta);
+													             .body(fromValue(respuesta));
 						        	   }
 						        	   
 										respuesta.put("producto", prod);
 										respuesta.put("message", "edición exitosa");
 										respuesta.put("timestamp", new Date());
 										
-										return ResponseEntity
+										return ServerResponse
 												 .ok()
 												 .contentType(MediaType.APPLICATION_JSON)
-												 .body(respuesta);
+												 .body(fromValue(respuesta));
 									});
-				}).onErrorResume(ex -> {
-		        	   return generarError(ex);
-		           });
+				});
+//				.onErrorResume(ex -> {
+//		        	   return generarError(ex);
+//		           });
 	}
 	
-	@DeleteMapping("/{id}")
-	public Mono<ResponseEntity<Map<String,Object>>> borrar(@PathVariable String id) {
+	public Mono<ServerResponse> borrar(ServerRequest request) {
+
+		String id = request.pathVariable("id");
 		Map<String, Object> respuesta = new HashMap<String, Object>();
 		return productoDao.findById(id)
 						           .flatMap(prod-> {
 						        	   return productoDao.delete(prod).then(Mono.just(id));
 						           })
 						           .defaultIfEmpty("")
-						           .map(check -> {
+						           .flatMap(check -> {
 						        	   
 						        	   if (check.equals("")) {
 											respuesta.put("message", "no existe el producto con id:"+id);
 											respuesta.put("timestamp", new Date());
 											
-											return ResponseEntity.status(HttpStatus.NOT_FOUND)
+											return ServerResponse.status(HttpStatus.NOT_FOUND)
 													             .contentType(MediaType.APPLICATION_JSON)
-													             .body(respuesta);
+													             .body(fromValue(respuesta));
 						        	   }
 						        	   
 						        	   respuesta.put("message", "baja exitosa");
 										respuesta.put("timestamp", new Date());
 										
-						        	   return ResponseEntity.ok()
+						        	   return ServerResponse.ok()
 						        	   .contentType(MediaType.APPLICATION_JSON)
-							             .body(respuesta);
+							             .body(fromValue(respuesta));
 						           });
 	}
 	
@@ -176,6 +212,28 @@ public class ProductoController {
  			    			  ResponseEntity
  			    			   .badRequest()
  			    			   .body(respuesta));
+ 			      });
+	}
+	
+	private Mono<ServerResponse> createErrors(List<FieldError> errors) {
+		Map<String, Object> respuesta = new HashMap<String, Object>();
+		
+		return Flux
+				.fromIterable(errors)
+ 			    .map(e-> {
+ 				   
+ 				   return new ValidationError(e.getField(), e.getDefaultMessage());//"campo: "+e.getField()+" error:"+e.getDefaultMessage();
+ 			    }).collectList()
+ 			    .flatMap(list -> {
+ 				   
+ 			    	 respuesta.put("errors", list);
+					 respuesta.put("message", "Ocurrió un error");
+					 respuesta.put("timestamp", new Date());
+					
+ 			    	  return 
+ 			    			 ServerResponse
+ 			    			   .badRequest()
+ 			    			   .body(fromValue(respuesta));
  			      });
 	}
 }
