@@ -1,24 +1,29 @@
-package com.springboot.webflux.app.models.documents;
+package com.springboot.webflux.app.models.document;
 
 import java.util.Date;
 
-import javax.validation.constraints.*;
+import javax.validation.constraints.Max;
+import javax.validation.constraints.Min;
+import javax.validation.constraints.NotEmpty;
+import javax.validation.constraints.NotNull;
 
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.format.annotation.DateTimeFormat.ISO;
 
-@Document(collection="productos") 
-public class Producto {
-	
+@Document(collection="producto")
+
+public class Producto 
+{
 	@Id
 	private String id;
 	
 	@NotNull
-	@NotEmpty (message="El nombre no puede estar vacío")
+	@NotEmpty
 	private String nombre;
 	
-	@NotNull
+	@NotNull 
 	@Min(value = 1, message = "El precio no debe ser menor que 1")
 	@Max(value = 25000, message = "El precio no debe ser mayor que 25mil")
 	private Double precio;
@@ -33,16 +38,18 @@ public class Producto {
 		
 	}
 	
+	
 	public Producto(String nombre, Double precio) {
+		
 		this.nombre = nombre;
 		this.precio = precio;
+		
 	}
-	
-	public Producto(String nombre, Double precio, Categoria categoria) {
+	public Producto (String nombre, Double precio, Categoria categoria) {
 		this(nombre, precio);
-		this.categoria = categoria;
+		this.categoria=categoria;
+		
 	}
-	
 	public String getId() {
 		return id;
 	}
@@ -67,16 +74,14 @@ public class Producto {
 	public void setCreatedAt(Date createdAt) {
 		this.createdAt = createdAt;
 	}
+
+
 	public Categoria getCategoria() {
 		return categoria;
 	}
+
+
 	public void setCategoria(Categoria categoria) {
 		this.categoria = categoria;
-	}
-
-	@Override
-	public String toString() {
-		return "Producto [id=" + id + ", nombre=" + nombre + ", precio=" + precio + ", createdAt=" + createdAt
-				+ ", categoria=" + categoria + "]";
-	}
+	}	
 }

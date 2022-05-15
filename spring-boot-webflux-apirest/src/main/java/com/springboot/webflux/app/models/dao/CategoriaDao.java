@@ -2,12 +2,13 @@ package com.springboot.webflux.app.models.dao;
 
 import org.springframework.data.mongodb.repository.ReactiveMongoRepository;
 
-import com.springboot.webflux.app.models.documents.Categoria;
+import com.springboot.webflux.app.models.document.Categoria;
 
 import reactor.core.publisher.Mono;
 
-public interface CategoriaDao extends ReactiveMongoRepository<Categoria, String> {
+
+public interface CategoriaDao extends ReactiveMongoRepository<Categoria, String>{
 	
 	public Mono<Categoria> findByNombre(String nombre);
-
+	
 }
