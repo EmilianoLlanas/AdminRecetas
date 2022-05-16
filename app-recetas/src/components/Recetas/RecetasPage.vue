@@ -1,6 +1,6 @@
 <template>
     <div class="container">
-        <h1>Recetas Page</h1>
+        <h1>Recetas Page </h1>
         <div class="row">
             <div class="col-sm-10 col-8">
                 <MostrarReceta v-if="!edit && receta" :receta="receta" @editar="editarReceta"/>
@@ -52,6 +52,13 @@ export default {
         console.log(response);
         this.edit = false;
         this.receta = recipe;
+        this.recetas=this.recetas.map(receta=> {
+            if(receta.id === recipe.id){
+                return recipe;
+            }else{
+                return receta;
+            }
+        });
     }
   },
   mounted() {

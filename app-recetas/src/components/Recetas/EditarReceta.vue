@@ -47,7 +47,7 @@ export default {
     data() {
         return {
             record: {...this.receta}
-        }
+        };
     },
     methods: {
         enviar() {
@@ -56,7 +56,7 @@ export default {
             this.$emit('update', this.record);
         }
     }
-}
+};
 </script>
 
 <style>
