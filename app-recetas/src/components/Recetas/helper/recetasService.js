@@ -7,6 +7,14 @@ const listarRecetas = async () => {
     return response.data;
 }
 
+const actualizarReceta = async (id, data) => {
+    const response = await recetasApi.get(`/${id}`, data);
+    console.log('actualizarReceta::response::%O', response);
+
+    return response.data;
+}
+
 export {
-    listarRecetas
+    listarRecetas,
+    actualizarReceta
 }

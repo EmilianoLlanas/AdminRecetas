@@ -3,7 +3,7 @@
     <div class="list-group">
         <button
          type="button" 
-         :class="itemClass"
+         :class="getItemClass(receta)"
          v-for="(receta, index) in recetas"
          :key="receta.id"
          @click="enviarReceta(receta)">{{ index }} - {{ receta.nombre }}
@@ -13,13 +13,19 @@
 </template>
 
 <script>
-import {listarRecetas} from './helper/recetasService'
+//import {listarRecetas} from './helper/recetasService'
 
 export default {
     name: 'ListarRecetas',
+    props: {
+        recetas: {
+            type: Array,
+            required: true,
+        }
+    },
     data(){
         return{
-            recetas: [], 
+            //recetas: [], 
             selectedId: null
         }
     },
@@ -41,17 +47,20 @@ export default {
         } 
     },
     methods: {
-        async fetchRecetas() {
-            this.recetas = await listarRecetas();
-            console.log('Listar recetas: %O', this.recetas)
-        },
         enviarReceta(recipe) {
             this.selectedId = recipe.id;
-            this.$emit('change', this.receta);
+            console.log(recipe);
+            this.$emit('change', recipe);
+        }, 
+        getItemClass(recipe) {
+            let style = "list-group-item list-group-item-action";
+
+            if(this.selectedId === recipe.id){
+                style = style + " active";
+            }
+            
+            return style;
         }
-    },
-    mounted() {
-        this.fetchRecetas();
     }
 }
 </script>
