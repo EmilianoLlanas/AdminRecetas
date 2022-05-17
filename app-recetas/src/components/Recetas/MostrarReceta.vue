@@ -32,7 +32,7 @@
                         <p class="card-text mt-2">Descripción: {{receta.descripcion}}</p>
                         <div class="m-2">
                             <button class="btn btn-primary m-2" @click="$emit('editar', receta)">Editar</button>
-                            <button class="btn btn-danger m-2">Eliminar</button>
+                            <button class="btn btn-danger m-2" @click="$emit('eliminar',receta)">Eliminar</button>
                         </div>
                     </div>
                 </div>

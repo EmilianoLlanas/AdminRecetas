@@ -3,7 +3,7 @@
         <h1>Recetas Page </h1>
         <div class="row">
             <div class="col-sm-10 col-8">
-                <MostrarReceta v-if="!edit && receta" :receta="receta" @editar="editarReceta"/>
+                <MostrarReceta v-if="!edit && receta" :receta="receta" @editar="editarReceta" @eliminar="eliminarReceta"/>
                 <EditarReceta v-if="edit" :receta="receta" @update="actualizarReceta"/>
             </div>
             <div class="col-sm-2 col-4">
@@ -17,7 +17,7 @@
 import MostrarReceta from './MostrarReceta.vue'
 import EditarReceta from './EditarReceta.vue'
 import ListarRecetas from './ListarRecetas.vue'
-import { actualizarReceta, listarRecetas } from './helper/recetasService';
+import { actualizarReceta, listarRecetas, eliminarReceta } from './helper/recetasService';
 
 export default {
     name: 'RecetasPage',
@@ -59,6 +59,12 @@ export default {
                 return receta;
             }
         });
+    },
+    async eliminarReceta(recipe){
+        const response = await eliminarReceta(recipe.id);
+        console.log("Eliminar::response::%O",response);
+        this.receta = null;
+        this.fetchRecetas();
     }
   },
   mounted() {

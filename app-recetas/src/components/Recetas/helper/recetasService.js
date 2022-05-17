@@ -14,7 +14,15 @@ const actualizarReceta = async (id, data) => {
     return response.data;
 }
 
+const eliminarReceta = async (id) => {
+    const response = await recetasApi.delete(`/${id}`);
+    console.log('actualizarReceta::response::%O', response);
+
+    return response.data;
+}
+
 export {
     listarRecetas,
-    actualizarReceta
+    actualizarReceta,
+    eliminarReceta
 }
