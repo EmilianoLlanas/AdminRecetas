@@ -8,7 +8,7 @@
                             <img
                                 :src = "receta.url"
                                 class = "card-img-top img-fluid w-50"
-                                alt = "..."
+                                alt = ""
                             />
                         </div>
                     </div>

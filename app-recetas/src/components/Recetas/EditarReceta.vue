@@ -29,6 +29,13 @@
                  v-model="record.descripcion" placeholder="Descripción">
                 <label for="descripcion">Descripción</label> 
             </div>
+
+            <!--<div class="form-floating mb-3 mt-3">
+                <input id="url" 
+                 type = "text" class="form-control" 
+                 v-model="record.url" placeholder="URL">
+                <label for="url">URL</label> 
+            </div>-->
             <button type="submit" class="btn btn-primary">Aceptar</button>
             <button type="submit" class="btn btn-danger">Cancelar</button>
         </form>
